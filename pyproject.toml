@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "link-shortener"
+version = "0.1.0"
+description = ""
+authors = ["Jonathan Leeming <jonathan@leeming.dev>"]
+readme = "README.md"
+packages = [{include = "link_shortener"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.111.0"
+Jinja2 = "^3.1.4"
+uvicorn = "^0.29.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

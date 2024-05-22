@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Link Shortener</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        [data-visible="false"] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Link Shortener</h1>
+    <section id="expand">
+        <h2>Enter a link id</h2>
+        <form action="/l" method="get">
+            <input type="text" name="target" />
+            <button type="submit">Expand</button>
+        </form>
+    </section>
+
+    <section id="admin">
+        <h2>Admin</h2>
+        <div id="admin-login">
+            <label for="admin-id">Admin ID</label>
+            <input type="text" id="admin-id" />
+            <button id="admin-login-button">Log In</button>
+
+            <p id="bad-token" data-visible="false">
+                Bad Token
+            </p>
+        </div>
+        <div id="admin-panel" data-visible="false">
+            <ul id="routes"></ul>
+            <button id="add-route">Add new route</button>
+            <button id="save-routes">Save routes</button>
+        </div>
+    </section>
+
+
+    <script>
+        const addRouteButton = document.getElementById("add-route")
+        const adminLoginButton = document.getElementById("admin-login-button")
+        const adminIdInput = document.getElementById("admin-id")
+        const adminPanel = document.getElementById("admin-panel")
+        const badTokenFeedback = document.getElementById("bad-token")
+        const routePanel = document.getElementById("routes")
+        const saveButton = document.getElementById("save-routes")
+        const deleteButtons = document.getElementsByClassName("delete-route")
+
+        let routeCount = 0
+
+        function deleteRoute(id) {
+            const node = Array.from(routePanel.children)
+                .filter(child => child.querySelector('input').dataset.id === id)[0]
+            routePanel.removeChild(node)
+        }
+
+        async function loadRoutes() {
+            const routes = await fetch(
+                '/routes',
+                {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        token: adminIdInput.value
+                    }),
+                }
+            )
+                .then(res => res.json())
+                .then(routes => Object.entries(routes))
+                .then(routes => routes
+                    .map(([id, route]) => `
+                        <li>
+                            <a href="/l/${id}">${id}</a>
+                            <input type="text" data-id="${id}" value="${route}" />
+                            <button class="delete-route" onclick="deleteRoute('${id}')">Delete</button>
+                        </li>`
+                    )
+                )
+            routePanel.innerHTML = routes.reduce((acc, x) => acc + x, '')
+            routeCount = routes.length
+        }
+
+        addRouteButton.addEventListener('click', e => {
+            e.preventDefault()
+            const id = `temp-${routeCount++}`
+            const li = document.createElement('li')
+            li.innerHTML = `
+                <input type="text" data-id="${id}" value="" />
+                <button class="delete-route" onclick="deleteRoute('${id}')">Delete</button>
+            `
+            routePanel.appendChild(li)
+        })
+
+        adminLoginButton.addEventListener('click', async e => {
+            e.preventDefault()
+            badTokenFeedback.dataset.visible = false
+            const valid = await fetch(
+                '/auth/validate',
+                {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        token: adminIdInput.value
+                    }),
+                }
+            ).then(res => res.json())
+            if (!valid) {
+                badTokenFeedback.dataset.visible = true
+                adminPanel.dataset.visible = false
+                return
+            }
+            if (adminPanel.dataset.visible !== 'false')
+                return
+            adminPanel.dataset.visible = true
+            await loadRoutes()
+        })
+
+        saveButton.addEventListener('click', async e => {
+            e.preventDefault()
+            const routes = Array.from(routePanel.children)
+                .map(child => child.querySelector('input'))
+                .map(el => [el.dataset.id, el.value])
+            const ok = await fetch(
+                '/routes/update',
+                {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        token: adminIdInput.value,
+                        routes: routes,
+                    }),
+                }
+            ).then(() => true).catch(() => false)
+            setTimeout(
+                () => saveButton.innerText = "Save routes",
+                2500
+            )
+            if (!ok) {
+                saveButton.innerText = 'An error occurred'
+                return
+            }
+            saveButton.innerText = 'Saved!'
+            await loadRoutes()
+        })
+    </script>
+</body>
+
+</html>
