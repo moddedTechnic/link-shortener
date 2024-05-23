@@ -9,6 +9,6 @@ COPY ./pyproject.toml .
 RUN poetry install
 
 COPY ./shortener.py .
-COPY ./templates templates/
+COPY ./admin.html .
 
 CMD ["poetry", "run", "uvicorn", "shortener:app", "--host", "0.0.0.0"]

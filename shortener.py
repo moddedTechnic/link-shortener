@@ -2,13 +2,11 @@ import json
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import RedirectResponse, FileResponse
 from pydantic import BaseModel
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
 ROUTES_FILE = Path("./routes.json")
 
@@ -29,12 +27,8 @@ REDIRECTIONS = load_routes()
 
 
 @app.get("/")
-def admin(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="admin.html",
-        context={},
-    )
+def admin():
+    return FileResponse("./admin.html")
 
 
 @app.get("/l")
